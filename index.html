@@ -123,6 +123,7 @@ nav button.on{font-weight:700}
 .fbl.p span{transform:translate(-50%,-50%);font-size:14px;font-weight:700;letter-spacing:.04em;opacity:.75}
 .mnote{position:absolute;left:8px;right:8px;bottom:26px;z-index:1000;background:#0e1030;color:#fff;font-size:12px;line-height:1.35;padding:7px 10px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
 .tdark{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.75)}
+.medot{position:relative;display:block;width:22px;height:22px}.medot i{position:absolute;inset:3px;border-radius:50%;background:#2f80ff;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);animation:me 2.2s ease-out infinite}@keyframes me{0%{box-shadow:0 0 0 0 rgba(47,128,255,.55),0 2px 6px rgba(0,0,0,.45)}70%,100%{box-shadow:0 0 0 14px rgba(47,128,255,0),0 2px 6px rgba(0,0,0,.45)}}
 </style></head><body>
 <div id="auth"><div class="ah"><img id="alogo" alt="BuzzAlert"></div>
 <div id="abox"><div class="chips" style="justify-content:center"><button class="chip on" id="tl"></button><button class="chip" id="tr"></button></div>
@@ -234,7 +235,17 @@ function fbOn(){if(fbOnF)return;fbOnF=true;fbLayer.addTo(map);fbUpdate();mn.text
 function fbOff(){if(!fbOnF)return;fbOnF=false;map.removeLayer(fbLayer);mn.hidden=true}
 map.on('zoomend',fbUpdate);
 var pinsLayer=LF.layerGroup().addTo(map),zoneLayer=LF.layerGroup().addTo(map),pickLayer=LF.layerGroup().addTo(map);
-var LocC=LF.Control.extend({options:{position:'topleft'},onAdd:function(){var d=LF.DomUtil.create('div','leaflet-bar'),a=LF.DomUtil.create('a','',d);a.href='#';a.setAttribute('role','button');a.title=lang==='nl'?'Mijn locatie':'My location';a.innerHTML='<svg class="ic" viewBox="0 0 24 24" style="width:18px;height:18px;margin:6px;vertical-align:top"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';LF.DomEvent.disableClickPropagation(d);a.onclick=function(e){e.preventDefault();if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(function(p){map.setView([p.coords.latitude,p.coords.longitude],14);if(mode==='report')setPick(p.coords.latitude,p.coords.longitude)},function(){},{enableHighAccuracy:true,timeout:10000})};return d}});map.addControl(new LocC());
+var LocC=LF.Control.extend({options:{position:'topleft'},onAdd:function(){var d=LF.DomUtil.create('div','leaflet-bar'),a=LF.DomUtil.create('a','',d);a.href='#';a.setAttribute('role','button');a.title=lang==='nl'?'Mijn locatie':'My location';a.innerHTML='<svg class="ic" viewBox="0 0 24 24" style="width:18px;height:18px;margin:6px;vertical-align:top"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';LF.DomEvent.disableClickPropagation(d);a.onclick=function(e){e.preventDefault();locate()};return d}});map.addControl(new LocC());
+var FLB=[[50.68,2.54],[51.52,5.92]];
+var AllC=LF.Control.extend({options:{position:'topleft'},onAdd:function(){var d=LF.DomUtil.create('div','leaflet-bar'),a=LF.DomUtil.create('a','',d);a.href='#';a.setAttribute('role','button');a.title=lang==='nl'?'Heel Vlaanderen':'All of Flanders';a.innerHTML='<svg class="ic" viewBox="0 0 24 24" style="width:18px;height:18px;margin:6px;vertical-align:top"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';LF.DomEvent.disableClickPropagation(d);a.onclick=function(e){e.preventDefault();map.fitBounds(FLB)};return d}});map.addControl(new AllC());
+var meDot=null,meAcc=null,meWatch=null,mePos=null;
+function showMe(p,go){var ll=[p.coords.latitude,p.coords.longitude];mePos=ll;
+if(!meDot){meAcc=LF.circle(ll,{radius:p.coords.accuracy,color:'#2f80ff',weight:1,fillColor:'#2f80ff',fillOpacity:.15,interactive:false}).addTo(map);meDot=LF.marker(ll,{icon:LF.divIcon({className:'',html:'<span class="medot"><i></i></span>',iconSize:[22,22],iconAnchor:[11,11]}),interactive:false,keyboard:false,zIndexOffset:900}).addTo(map)}
+else{meDot.setLatLng(ll);meAcc.setLatLng(ll);meAcc.setRadius(p.coords.accuracy)}
+if(go)map.setView(ll,Math.max(map.getZoom(),14))}
+function locate(){if(!navigator.geolocation)return;
+if(meWatch===null)meWatch=navigator.geolocation.watchPosition(function(p){var first=!mePos;showMe(p,first);if(first&&mode==='report')setPick(p.coords.latitude,p.coords.longitude)},function(){meWatch=null},{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+else if(mePos){map.setView(mePos,Math.max(map.getZoom(),14));if(mode==='report')setPick(mePos[0],mePos[1])}}
 map.on('popupclose',function(){setTimeout(render,0)});
 function popupFor(r){var d=mk('div');d.appendChild(mk('b',(r.line?r.line+' \u00b7 ':'')+(r.stop||r.place)+(r.dir?' \u2192 '+r.dir:'')));d.appendChild(mk('div',(r.cnt||1)+'\u00d7 \u00b7 '+(T(r.dress)||'')+' \u00b7 '+ago(r.ts),'sub'));if(r.note)d.appendChild(mk('div',r.note));return d}
 var PR={A:"Antwerpen",O:"Oost-Vlaanderen",W:"West-Vlaanderen",V:"Vlaams-Brabant",L:"Limburg",B:"Brussel"};
