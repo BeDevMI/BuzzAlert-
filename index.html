@@ -122,6 +122,7 @@ nav button.on{font-weight:700}
 .fbl.m span{font-size:13px;color:var(--ink)}
 .fbl.p span{transform:translate(-50%,-50%);font-size:14px;font-weight:700;letter-spacing:.04em;opacity:.75}
 .mnote{position:absolute;left:8px;right:8px;bottom:26px;z-index:1000;background:#0e1030;color:#fff;font-size:12px;line-height:1.35;padding:7px 10px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.tdark{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.75)}
 </style></head><body>
 <div id="auth"><div class="ah"><img id="alogo" alt="BuzzAlert"></div>
 <div id="abox"><div class="chips" style="justify-content:center"><button class="chip on" id="tl"></button><button class="chip" id="tr"></button></div>
@@ -212,13 +213,15 @@ function path(pts){return'M'+pts.map(function(p){return px(p[0],p[1]).map(functi
 var LF=window.L,map=LF.map('map',{minZoom:7,maxZoom:18,maxBounds:[[49.3,1.8],[52.0,7.0]],maxBoundsViscosity:.8,zoomSnap:.5});
 map.fitBounds([[50.68,2.54],[51.52,5.92]]);
 var dq=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)'),tl=null,si=0,tOk=false,tErr=0,fbOnF=false;
-var SRC=[function(dk){return'https://{s}.basemaps.cartocdn.com/'+(dk?'dark_all':'light_all')+'/{z}/{x}/{y}{r}.png'},function(){return'https://tile.openstreetmap.org/{z}/{x}/{y}.png'}];
-var ATT=['&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>','&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'];
-function tiles(){var th=document.documentElement.getAttribute('data-theme'),dk=th==='dark'||(th!=='light'&&dq&&dq.matches);if(tl)map.removeLayer(tl);var o={maxZoom:19,attribution:ATT[si]};if(si===0)o.subdomains='abcd';tl=LF.tileLayer(SRC[si](dk),o).addTo(map);
+var MAPTILER_KEY='';/* optioneel: plak hier je gratis MapTiler-sleutel voor een mooiere kaart (maptiler.com) */
+var OSMA='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-bijdragers';
+var SRC=[];if(MAPTILER_KEY)SRC.push({u:function(dk){return'https://api.maptiler.com/maps/'+(dk?'streets-v2-dark':'streets-v2')+'/{z}/{x}/{y}.png?key='+MAPTILER_KEY},o:{tileSize:512,zoomOffset:-1,maxZoom:18,attribution:'&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> '+OSMA}});
+SRC.push({u:function(){return'https://tile.openstreetmap.org/{z}/{x}/{y}.png'},o:{maxZoom:19,attribution:OSMA},inv:true});
+function tiles(){var th=document.documentElement.getAttribute('data-theme'),dk=th==='dark'||(th!=='light'&&dq&&dq.matches),c=SRC[si],o=Object.assign({},c.o);if(c.inv&&dk)o.className='tdark';if(tl)map.removeLayer(tl);tl=LF.tileLayer(c.u(dk),o).addTo(map);
 tl.on('tileload',function(){if(!tOk){tOk=true;fbOff()}});tl.on('tileerror',function(){if(!tOk&&++tErr>=3)nextSrc()})}
 function nextSrc(){tErr=0;if(si<SRC.length-1){si++;tiles()}else fbOn()}
 tiles();if(dq&&dq.addEventListener)dq.addEventListener('change',tiles);
-setTimeout(function(){if(!tOk&&si===0)nextSrc()},7000);setTimeout(function(){if(!tOk)fbOn()},14000);
+setTimeout(function(){if(!tOk&&SRC.length>1&&si===0)nextSrc()},7000);setTimeout(function(){if(!tOk)fbOn()},14000);
 // noodkaart (zonder internet-tegels): omtrek, provincies en steden
 var fbLayer=LF.layerGroup(),mn=document.createElement('div');mn.className='mnote';mn.hidden=true;$('mapbox').appendChild(mn);
 var FLP=[[2.55,51.09],[3.37,51.37],[3.6,51.3],[3.85,51.27],[4.24,51.37],[4.4,51.43],[4.8,51.48],[5.1,51.48],[5.3,51.35],[5.5,51.28],[5.65,51.15],[5.8,51.05],[5.9,50.9],[5.82,50.75],[5.55,50.73],[5.25,50.7],[4.9,50.75],[4.6,50.73],[4.45,50.75],[4.25,50.72],[4.0,50.75],[3.75,50.72],[3.6,50.75],[3.25,50.7],[3.1,50.74],[2.9,50.72],[2.6,50.78]],PRC=[['A',4.7,51.2],['O',3.8,51.0],['W',3.05,51.0],['V',4.6,50.88],['L',5.35,51.0]];
